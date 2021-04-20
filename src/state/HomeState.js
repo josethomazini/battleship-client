@@ -2,32 +2,44 @@ const SocketHandler = require('../SocketHandler');
 const AwaitingNewPartnerState = require('./AwaitingNewPartnerState');
 
 class HomeState {
+  constructor() {
+    this.clearPage();
+    this.createPage();
+  }
+
+  clearPage() {
+    const page = document.getElementById('page');
+    if (page !== null) {
+      page.parentElement.removeChild(page);
+    }
+  }
+
+  createPage() {
+    const page = document.createElement('div');
+    page.id = 'page';
+    document.body.appendChild(page);
+
+    const startButton = this.createStartButton();
+    page.appendChild(startButton);
+  }
+
   createStartButton() {
     const that = this;
-    const el = document.createElement('button');
-    el.id = 'start-button';
-    el.innerHTML = 'Start Game';
 
-    el.onclick = () => {
+    const startButton = document.createElement('button');
+    startButton.id = 'start-button';
+    startButton.innerHTML = 'Start Game';
+
+    startButton.onclick = () => {
       that.startButtonClicked();
       return false;
     };
-    return el;
-  }
-
-  hideStartButton() {
-    const el = document.getElementById('start-button');
-    el.style.display = 'none';
+    return startButton;
   }
 
   startButtonClicked() {
-    this.hideStartButton();
     const socketHandler = new SocketHandler();
     new AwaitingNewPartnerState(socketHandler);
-  }
-
-  run() {
-    document.body.appendChild(this.createStartButton());
   }
 }
 

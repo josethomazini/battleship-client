@@ -1,3 +1,3 @@
 const HomeState = require('./state/HomeState');
 
-new HomeState().run();
+new HomeState();

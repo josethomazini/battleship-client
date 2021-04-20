@@ -1,6 +1,5 @@
-class AwaitingNewPartnerState {
-  constructor(socket) {
-    this.socket = socket;
+class AwaitingRoomStartState {
+  constructor() {
     this.clearPage();
     this.createPage();
   }
@@ -13,10 +12,10 @@ class AwaitingNewPartnerState {
   createPage() {
     const page = document.createElement('div');
     page.id = 'page';
-    page.innerHTML = 'Awaiting a partner';
+    page.innerHTML = 'Awaiting room to start';
 
     document.body.appendChild(page);
   }
 }
 
-module.exports = AwaitingNewPartnerState;
+module.exports = AwaitingRoomStartState;

@@ -1,7 +1,9 @@
+const AwaitingRoomStartState = require('./AwaitingRoomStartState');
+
 class MakeGridState {
   constructor(socket) {
     this.socket = socket;
-    this.hideAwaitingMessage();
+    this.clearPage();
 
     this.ships = {
       aircraft: {
@@ -23,13 +25,23 @@ class MakeGridState {
 
     this.grid = Array(10).fill(null).map(() => Array(10).fill(null));
 
-    const divEl = document.createElement('div');
-    divEl.id = 'grid-div';
-    divEl.appendChild(this.createMessage());
-    divEl.appendChild(this.createOptions());
-    divEl.appendChild(this.createCanvas());
-    divEl.appendChild(this.createSendGridButton(this));
-    document.body.appendChild(divEl);
+    this.createPage();
+  }
+
+  clearPage() {
+    const page = document.getElementById('page');
+    page.parentElement.removeChild(page);
+  }
+
+  createPage() {
+    const page = document.createElement('div');
+    page.id = 'page';
+    document.body.appendChild(page);
+
+    page.appendChild(this.createMessage());
+    page.appendChild(this.createOptions());
+    page.appendChild(this.createCanvas());
+    page.appendChild(this.createSendGridButton(this));
 
     this.canvas = document.getElementById('game-canvas');
     this.drawCanvasLines();
@@ -37,6 +49,64 @@ class MakeGridState {
     this.canvas.addEventListener('mousedown', (e) => {
       this.canvasClicked(this, e);
     });
+  }
+
+  createMessage() {
+    const el = document.createElement('div');
+    el.id = 'grid-message';
+    el.innerHTML = 'Place your fleet.';
+    return el;
+  }
+
+  createOptions() {
+    const el = document.createElement('div');
+
+    const shipIds = Object.getOwnPropertyNames(this.ships);
+    const options = [];
+
+    let checked = 'checked="checked"';
+
+    for (let index = 0; index < shipIds.length; index += 1) {
+      const shipId = shipIds[index];
+      const { label, size, color } = this.ships[shipId];
+      const txt = `<label style="color: ${color}">`
+        + `<input type="radio" name="ship" ${checked}`
+        + ` value="${shipId}"><span id="span-${shipId}">${label} [${size}]`
+        + '</span></label><br>';
+      options.push(txt);
+
+      checked = '';
+    }
+
+    el.innerHTML = options.join('');
+    return el;
+  }
+
+  createCanvas() {
+    const el = document.createElement('canvas');
+    el.id = 'game-canvas';
+    el.width = 300;
+    el.height = 300;
+    el.style = 'border:1px solid #000000;';
+    return el;
+  }
+
+  createSendGridButton(instance) {
+    const el = document.createElement('button');
+    el.id = 'send-grid-button';
+    el.innerHTML = 'Send Grid';
+    el.style.display = 'none';
+
+    el.onclick = () => {
+      instance.sendButtonClicked(instance);
+      return false;
+    };
+    return el;
+  }
+
+  sendButtonClicked(instance) {
+    this.socket.emit('send-grid', { grid: instance.grid });
+    new AwaitingRoomStartState();
   }
 
   redraw(instance) {
@@ -226,24 +296,6 @@ class MakeGridState {
     el.style.display = (show) ? 'block' : 'none';
   }
 
-  sendButtonClicked(instance) {
-    const gridJson = JSON.stringify(instance.grid);
-    console.log(gridJson);
-  }
-
-  createSendGridButton(instance) {
-    const el = document.createElement('button');
-    el.id = 'send-grid-button';
-    el.innerHTML = 'Send Grid';
-    el.style.display = 'none';
-
-    el.onclick = () => {
-      instance.sendButtonClicked(instance);
-      return false;
-    };
-    return el;
-  }
-
   parseClick(instance, x, y, ship) {
     const currentCellValue = instance.grid[x][y];
     const { grid } = instance;
@@ -280,28 +332,6 @@ class MakeGridState {
     }
   }
 
-  hideAwaitingMessage() {
-    const el = document.getElementById('awaiting-partner-message');
-    el.style.display = 'none';
-  }
-
-  createMessage() {
-    const el = document.createElement('div');
-    el.id = 'grid-message';
-    el.innerHTML = 'Place your fleet.';
-
-    return el;
-  }
-
-  createCanvas() {
-    const el = document.createElement('canvas');
-    el.id = 'game-canvas';
-    el.width = 300;
-    el.height = 300;
-    el.style = 'border:1px solid #000000;';
-    return el;
-  }
-
   drawCanvasLines() {
     const ctx = this.canvas.getContext('2d');
 
@@ -314,29 +344,6 @@ class MakeGridState {
       ctx.lineTo(300, 30 * index);
       ctx.stroke();
     }
-  }
-
-  createOptions() {
-    const el = document.createElement('div');
-
-    const shipIds = Object.getOwnPropertyNames(this.ships);
-    const options = [];
-
-    let checked = 'checked="checked"';
-
-    for (let index = 0; index < shipIds.length; index += 1) {
-      const shipId = shipIds[index];
-      const { label, size, color } = this.ships[shipId];
-      const txt = `<label style="color: ${color}">`
-        + `<input type="radio" name="ship" ${checked}`
-        + ` value="${shipId}"><span id="span-${shipId}">${label} [${size}]</span></label><br>`;
-      options.push(txt);
-
-      checked = '';
-    }
-
-    el.innerHTML = options.join('');
-    return el;
   }
 }
 
