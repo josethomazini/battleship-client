@@ -2,25 +2,31 @@ class RoomState {
   constructor(socket, data) {
     this.socket = socket;
     this.turn = data.turn;
+    this.gameOver = false;
 
-    this.myGrid = data.myGrid;
     this.enemyGrid = data.enemyGrid;
 
     this.ships = {
       aircraft: {
-        size: 5, label: 'Aircraft carrier', drawn: 0, color: 'red',
+        color: 'red',
       },
       battleship: {
-        size: 4, label: 'Battleship', drawn: 0, color: 'green',
+        color: 'green',
       },
       submarine: {
-        size: 3, label: 'Submarine', drawn: 0, color: 'blue',
+        color: 'blue',
       },
       destroyer: {
-        size: 3, label: 'Destroyer', drawn: 0, color: 'black',
+        color: 'black',
       },
       patrol: {
-        size: 2, label: 'Patrol', drawn: 0, color: 'grey',
+        color: 'grey',
+      },
+      bombship: {
+        color: 'yellow',
+      },
+      bombsea: {
+        color: 'pink',
       },
     };
 
@@ -33,27 +39,44 @@ class RoomState {
   }
 
   createPage(data) {
-    const { myGrid, enemyGrid } = data;
+    const { enemyGrid } = data;
     const page = document.createElement('div');
     page.id = 'page';
 
-    page.appendChild(this.createCanvas('enemy-canvas'));
-    page.appendChild(this.createCanvas('player-canvas'));
-    page.appendChild(this.createMessage());
+    page.appendChild(this.createCanvas());
+    page.appendChild(this.createStatusArea());
 
     document.body.appendChild(page);
 
-    this.drawCanvasLines('player-canvas');
-    this.drawCanvasLines('enemy-canvas');
+    this.drawCanvasLines();
 
-    this.drawGrid('enemy-canvas', enemyGrid);
-    this.drawGrid('player-canvas', myGrid);
+    this.drawGrid(enemyGrid);
+
+    const canvas = document.getElementById('canvas');
+    canvas.addEventListener('mousedown', (e) => {
+      this.canvasClicked(this, e, canvas);
+    });
   }
 
-  createMessage() {
-    const el = document.createElement('label');
+  canvasClicked(instance, e, enemyCanvas) {
+    if (!instance.turn || this.gameOver) {
+      return;
+    }
+    const { clientX, clientY } = e;
+    const rect = enemyCanvas.getBoundingClientRect();
 
-    if (this.turn) {
+    const x = parseInt((clientX - rect.left) / 30, 10);
+    const y = parseInt((clientY - rect.top) / 30, 10);
+
+    this.socket.emit('attack', { x, y });
+  }
+
+  createStatusArea() {
+    const el = document.createElement('div');
+
+    if (this.gameOver) {
+      el.innerHTML = 'GAME OVER';
+    } else if (this.turn) {
       el.innerHTML = 'YOUR TURN';
     } else {
       el.innerHTML = 'ENEMY TURN';
@@ -61,8 +84,8 @@ class RoomState {
     return el;
   }
 
-  drawGrid(canvasName, grid) {
-    const canvas = document.getElementById(canvasName);
+  drawGrid(grid) {
+    const canvas = document.getElementById('canvas');
 
     for (let x = 0; x < grid.length; x += 1) {
       const line = grid[x];
@@ -87,8 +110,8 @@ class RoomState {
     ctx.closePath();
   }
 
-  drawCanvasLines(name) {
-    const canvas = document.getElementById(name);
+  drawCanvasLines() {
+    const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d');
 
     for (let index = 0; index < 10; index += 1) {
@@ -102,9 +125,9 @@ class RoomState {
     }
   }
 
-  createCanvas(name) {
+  createCanvas() {
     const el = document.createElement('canvas');
-    el.id = name;
+    el.id = 'canvas';
     el.width = 300;
     el.height = 300;
     el.style = 'border:1px solid #000000; margin-right: 5px;';
@@ -113,6 +136,10 @@ class RoomState {
 
   updateRoom(data) {
     this.clearPage();
+    this.turn = data.turn;
+    this.enemyGrid = data.enemyGrid;
+    this.gameOver = data.gameOver;
+
     this.createPage(data);
   }
 }
